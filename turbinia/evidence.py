@@ -177,6 +177,7 @@ class RawDisk(Evidence):
     self.mount_path = mount_path
     self.mount_partition = mount_partition
     self.size = size
+    self._loop_device = None
     super(RawDisk, self).__init__(*args, **kwargs)
 
 
@@ -248,6 +249,27 @@ class GoogleCloudDiskRawEmbedded(GoogleCloudDisk):
 
   def postprocess(self):
     google_cloud.PostprocessDetachDisk(self)
+    mount_local.PostprocessUnmountDisk(self)
+
+
+class DockerContainerEvidence(RawDisk):
+  """Evidence object for a DockerContainer filesystem.
+
+  Attributes:
+    container_id(str): The ID of the container to mount.
+  """
+
+  def __init__(self, container_id=None, *args, **kwargs):
+    """Initialization for Docker Container."""
+    self.container_id = container_id
+    super(DockerContainer, self).__init__(*args, **kwargs)
+
+  def preprocess(self):
+    self.local_path = os.path.join(self.mount_path, self.container_id)
+    docker_mount.PreprocessMountDockerFS(self)
+    # self.mount_path needs to be /blabla/container_id
+
+  def postprocess(self):
     mount_local.PostprocessUnmountDisk(self)
 
 

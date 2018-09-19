@@ -24,6 +24,7 @@ def get_jobs():
     A list of TurbiniaJobs.
   """
   # Defer imports to prevent circular dependencies during init.
+  from turbinia.jobs.docker import DockerContainerEnumerationJob
   from turbinia.jobs.grep import GrepJob
   from turbinia.jobs.hadoop import HadoopAnalysisJob
   from turbinia.jobs.plaso import PlasoJob
@@ -40,10 +41,10 @@ def get_jobs():
   # TODO(aarontp): Dynamically look up job objects and make enabling/disabling
   # configurable through config and/or recipes.
   return [
-      GrepJob(), HadoopAnalysisJob(), HTTPAccessLogAnalysisJob(),
-      HTTPAccessLogExtractionJob(), JenkinsAnalysisJob(), PlasoJob(),
-      PsortJob(), SSHDExtractionJob(), SSHDAnalysisJob(), StatJob(),
-      StringsJob(), TomcatAnalysisJob(), TomcatExtractionJob()]
+#    StatJob(), PlasoJob(), PsortJob(), StringsJob(), GrepJob(),
+#    SSHDExtractionJob(), SSHDAnalysisJob(), TomcatExtractionJob(), TomcatAnalysisJob()
+    DockerContainerEnumerationJob()
+  ]
 
 
 class TurbiniaJob(object):

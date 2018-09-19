@@ -37,6 +37,8 @@ def PreprocessMountDisk(evidence):
   config.LoadConfig()
   mount_prefix = config.MOUNT_DIR_PREFIX
 
+  mount_options = "-o ro"
+
   if os.path.exists(mount_prefix) and not os.path.isdir(mount_prefix):
     raise TurbiniaException(
         'Mount dir {0:s} exists, but is not a directory'.format(mount_prefix))
@@ -83,6 +85,41 @@ def PreprocessMountDisk(evidence):
     raise TurbiniaException('Could not mount directory {0!s}'.format(e))
 
 
+def PreprocessMountDockerFS(evidence):
+  """Locally mounts Docker container FS in an instance.
+
+  Args:
+    evidence: A turbinia.evidence.RawDisk or subclass object.
+  """
+  # TODO: Most of the code is copied from PreprocessMountDisk
+  # Only the mount command changes
+  config.LoadConfig()
+  mount_prefix = config.MOUNT_DIR_PREFIX
+
+  if os.path.exists(mount_prefix) and not os.path.isdir(mount_prefix):
+    raise TurbiniaException(
+        'Mount dir {0:s} exists, but is not a directory'.format(mount_prefix))
+  if not os.path.exists(mount_prefix):
+    log.info('Creating local mount parent directory {0:s}'.format(mount_prefix))
+    try:
+      os.makedirs(mount_prefix)
+    except OSError as e:
+      raise TurbiniaException(
+          'Could not create mount directory {0:s}: {1!s}'.format(
+              mount_prefix, e))
+
+  evidence.mount_path = tempfile.mkdtemp(prefix='turbinia', dir=mount_prefix)
+
+  # TODO(aarontp): Remove hard-coded sudo in commands:
+  # https://github.com/google/turbinia/issues/73
+  mount_cmd = ['sudo', 'de.py', '-r',  os.path.join(evidence.source_path, 'var', 'lib', 'docker'), evidence.container_id, evidence.mount_path]
+  log.info('Running: {0:s}'.format(' '.join(mount_cmd)))
+  try:
+    subprocess.check_call(mount_cmd)
+  except subprocess.CalledProcessError as e:
+    raise TurbiniaException('Could not mount directory {0!s}'.format(e))
+
+
 def PostprocessUnmountDisk(evidence):
   """Locally unmounts disk in an instance.
 
@@ -112,5 +149,8 @@ def PostprocessUnmountDisk(evidence):
     raise TurbiniaException(
         'Could not remove mount path directory {0:s}: {1!s}'.format(
             evidence.mount_path, e))
+
+  if hasattr(evidence, 'mount_partition') and evidence.mount_partition:
+    subprocess.Popen("losetup ")
 
   evidence.mount_path = None
