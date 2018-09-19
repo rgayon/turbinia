@@ -37,8 +37,6 @@ def PreprocessMountDisk(evidence):
   config.LoadConfig()
   mount_prefix = config.MOUNT_DIR_PREFIX
 
-  mount_options = "-o ro"
-
   if os.path.exists(mount_prefix) and not os.path.isdir(mount_prefix):
     raise TurbiniaException(
         'Mount dir {0:s} exists, but is not a directory'.format(mount_prefix))
@@ -150,8 +148,5 @@ def PostprocessUnmountDisk(evidence):
     raise TurbiniaException(
         'Could not remove mount path directory {0:s}: {1!s}'.format(
             evidence.mount_path, e))
-
-  if hasattr(evidence, 'mount_partition') and evidence.mount_partition:
-    subprocess.Popen("losetup ")
 
   evidence.mount_path = None
