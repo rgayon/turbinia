@@ -251,6 +251,18 @@ class GoogleCloudDiskRawEmbedded(GoogleCloudDisk):
     google_cloud.PostprocessDetachDisk(self)
     mount_local.PostprocessUnmountDisk(self)
 
+class MountedPartitionEvidence(RawDisk):
+  """TODO"""
+  def __init__(self,  *args, **kwargs):
+    """TODO"""
+    super(MountedPartitionEvidence, self).__init__(*args, **kwargs)
+
+  def preprocess(self):
+    mount_local.PreprocessMountDisk(evidence)
+
+  def postprocess(self):
+    mount_local.PostprocessUnmountDisk(evidence)
+
 
 class DockerContainerEvidence(RawDisk):
   """Evidence object for a DockerContainer filesystem.
