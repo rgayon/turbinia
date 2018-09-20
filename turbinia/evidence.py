@@ -180,6 +180,12 @@ class RawDisk(Evidence):
     self._loop_device = None
     super(RawDisk, self).__init__(*args, **kwargs)
 
+  def preprocess(self):
+    mount_local.PreprocessMountDisk(self)
+
+  def postprocess(self):
+    mount_local.PostprocessUnmountDisk(self)
+
 
 class EncryptedDisk(RawDisk):
   """Encrypted disk file evidence.
@@ -220,8 +226,10 @@ class GoogleCloudDisk(RawDisk):
 
   def preprocess(self):
     google_cloud.PreprocessAttachDisk(self)
+    super(GoogleCloudDisk, self).preprocess()
 
   def postprocess(self):
+    super(GoogleCloudDisk, self).postprocess()
     google_cloud.PostprocessDetachDisk(self)
 
 
@@ -243,25 +251,12 @@ class GoogleCloudDiskRawEmbedded(GoogleCloudDisk):
     super(GoogleCloudDiskRawEmbedded, self).__init__(*args, **kwargs)
 
   def preprocess(self):
-    google_cloud.PreprocessAttachDisk(self)
-    mount_local.PreprocessMountDisk(self)
+    super(GoogleCloudDiskRawEmbedded, self).preprocess()
     self.local_path = os.path.join(self.mount_path, self.embedded_path)
 
   def postprocess(self):
     google_cloud.PostprocessDetachDisk(self)
-    mount_local.PostprocessUnmountDisk(self)
-
-class MountedPartitionEvidence(RawDisk):
-  """TODO"""
-  def __init__(self,  *args, **kwargs):
-    """TODO"""
-    super(MountedPartitionEvidence, self).__init__(*args, **kwargs)
-
-  def preprocess(self):
-    mount_local.PreprocessMountDisk(evidence)
-
-  def postprocess(self):
-    mount_local.PostprocessUnmountDisk(evidence)
+    super(GoogleCloudDiskRawEmbedded, self).post()
 
 
 class DockerContainerEvidence(RawDisk):
@@ -277,12 +272,13 @@ class DockerContainerEvidence(RawDisk):
     super(DockerContainer, self).__init__(*args, **kwargs)
 
   def preprocess(self):
+    self(DockerContainerEvidence, self).preprocess()
     self.local_path = os.path.join(self.mount_path, self.container_id)
     docker_mount.PreprocessMountDockerFS(self)
     # self.mount_path needs to be /blabla/container_id
 
   def postprocess(self):
-    mount_local.PostprocessUnmountDisk(self)
+    self(DockerContainerEvidence, self).postprocess()
 
 
 class PlasoFile(Evidence):

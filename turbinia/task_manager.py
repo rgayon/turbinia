@@ -119,7 +119,7 @@ class BaseTaskManager(object):
     """
     if not self.jobs:
       raise turbinia.TurbiniaException(
-          'Jobs must be registered before evidence can be added')
+          'At least one job must be registered before evidence can be added')
     log.info('Adding new evidence: {0:s}'.format(str(evidence_)))
     self.evidence.append(evidence_)
     job_count = 0
