@@ -154,6 +154,9 @@ class Evidence(object):
     """
     pass
 
+  def copy_context(self, target_evidence):
+    pass
+
 
 class Directory(Evidence):
   """Filesystem directory evidence."""
@@ -164,8 +167,7 @@ class RawDisk(Evidence):
   """Evidence object for Disk based evidence.
 
   Attributes:
-    losetup_path: Path to the losetup device for this disk.
-    mount_path: The mount path for this disk (if any).
+    disk_mount_path: The mount path for this disk (if any).
     mount_partition: The mount partition for this disk (if any).
     size:  The size of the disk in bytes.
   """
@@ -173,18 +175,33 @@ class RawDisk(Evidence):
   def __init__(self, mount_path=None, mount_partition=None, size=None, *args,
                **kwargs):
     """Initialization for raw disk evidence object."""
-    self.losetup_path = None
+    super(RawDisk, self).__init__(*args, **kwargs)
+    self.path_to_disk = self.local_path
     self.mount_path = mount_path
     self.mount_partition = mount_partition
     self.size = size
-    self._loop_device = None
-    super(RawDisk, self).__init__(*args, **kwargs)
+    self._losetup_device = None
+
+  def copy_context(self, target_evidence):
+    target_evidence.path_to_disk = self.path_to_disk
+    target_evidence.mount_partition = self.mount_partition
+    target_evidence.disk_mount_path = self.disk_mount_path
+    target_evidence._losetup_device = self._losetup_device
 
   def preprocess(self):
-    mount_local.PreprocessMountDisk(self)
+    # First use losetup to parse the RawDisk eventual partition table
+    # and make block devices per partitions.
+    self._losetup_device = mount_local.PreprocessLoSetup(self.path_to_disk)
+    # Then we mount the partition
+    self.disk_mount_path = mount_local.PreprocessMountDisk(self._losetup_device, self.mount_partition)
+    self.local_path = self.disk_mount_path
 
   def postprocess(self):
-    mount_local.PostprocessUnmountDisk(self)
+    mount_local.PostprocessUnmountPath(self.disk_mount_path)
+    self.disk_mount_path = None
+    mount_local.PostprocessDeleteLosetup(self._losetup_device)
+    self._losetup_device = None
+    self.local_path = None
 
 
 class EncryptedDisk(RawDisk):
@@ -259,7 +276,7 @@ class GoogleCloudDiskRawEmbedded(GoogleCloudDisk):
     super(GoogleCloudDiskRawEmbedded, self).post()
 
 
-class DockerContainerEvidence(RawDisk):
+class DockerContainer(RawDisk):
   """Evidence object for a DockerContainer filesystem.
 
   Attributes:
@@ -268,17 +285,27 @@ class DockerContainerEvidence(RawDisk):
 
   def __init__(self, container_id=None, *args, **kwargs):
     """Initialization for Docker Container."""
-    self.container_id = container_id
     super(DockerContainer, self).__init__(*args, **kwargs)
+    self.container_id = container_id
+    self.docker_dir = None
+    self.container_fs_path = None
+
+  def copy_context(self, target_evidence):
+    super(DockerContainer, self).copy_context(target_evidence)
+    target_evidence.container_id = self.container_id
+    target_evidence.docker_dir = self.docker_dir
+    target_evidence.container_fs_path = self.container_fs_path
 
   def preprocess(self):
-    self(DockerContainerEvidence, self).preprocess()
-    self.local_path = os.path.join(self.mount_path, self.container_id)
-    docker_mount.PreprocessMountDockerFS(self)
-    # self.mount_path needs to be /blabla/container_id
+    super(DockerContainer, self).preprocess()
+    self.docker_dir = os.path.join(self.disk_mount_path, 'var', 'lib', 'docker')
+    self.container_fs_path = mount_local.PreprocessMountDockerFS(self.docker_dir, self.container_id)
+    self.local_path = self.container_fs_path
 
   def postprocess(self):
-    self(DockerContainerEvidence, self).postprocess()
+    mount_local.PostprocessUnmountPath(self.container_fs_path)
+    self.container_fs_path = None
+    super(DockerContainer, self).postprocess()
 
 
 class PlasoFile(Evidence):

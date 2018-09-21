@@ -24,7 +24,7 @@ import subprocess
 from turbinia import config
 from turbinia import TurbiniaException
 from turbinia.evidence import Directory
-from turbinia.evidence import DockerContainerEvidence
+from turbinia.evidence import DockerContainer
 from turbinia.processors import mount_local
 from turbinia.workers import TurbiniaTask
 
@@ -39,6 +39,7 @@ class DockerContainersEnumerationTask(TurbiniaTask):
     containers_info = None
     docker_explorer_command = ['sudo', '/usr/local/bin/de.py', '-r', docker_dir, 'list', 'all_containers']
     try:
+      log.info('Running {0:s}'.format(' '.join(docker_explorer_command)))
       json_string = subprocess.check_output(docker_explorer_command)
     except Exception as e:
       raise TurbiniaException('Failed to run {0:s} {1!s}'.format(' '.join(docker_explorer_command), e))
@@ -64,36 +65,16 @@ class DockerContainersEnumerationTask(TurbiniaTask):
       TurbiniaTaskResult object.
     """
     try:
-      docker_dir_path = os.path.join(evidence.mount_path, 'var', 'lib', 'docker')
+      docker_dir_path = os.path.join(evidence.local_path, 'var', 'lib', 'docker')
       containers_info = self.GetContainers(docker_dir_path)
       for container_info in containers_info:
         container_id = container_info.get('container_id')
-        log.info('Found container_id {0:s}'.format(container_id))
-    except TurbiniaException as e:
+        container_evidence = DockerContainer(container_id=container_id)
+        evidence.copy_context(container_evidence)
+        result.add_evidence(container_evidence, evidence.config)
+  except TurbiniaException as e:
       error_msg = 'TODO failed with {0!s}'.format(e)
       result.close(self, success=False, status=error_msg)
-
-    return result
-
-
-class DockerContainerMountTask(TurbiniaTask):
-  """Task to mount counter FS."""
-
-
-  def run(self, evidence, result):
-    """TODO"""
-    config.LoadConfig()
-
-    mount_local.PreprocessMountDisk(evidence)
-
-    result.log('Getting all container IDs ')
-    result.log('{0:s}'.format(evidence.to_json()))
-    container_ids = self.GetContainers(os.path.join(evidence.mount_path, 'var', 'lib', 'docker'))
-
-    for container_id in container_ids:
-      e = DockerContainerEvidence(container_id)
-      # Evidence will mount the container with de.py on preprocessing
-      result.add_evidence(e, evidence.config)
 
     result.close(self, success=True)
     return result

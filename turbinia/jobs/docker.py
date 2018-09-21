@@ -16,7 +16,7 @@
 
 from __future__ import unicode_literals
 
-from turbinia.evidence import DockerContainerEvidence
+from turbinia.evidence import DockerContainer
 from turbinia.evidence import GoogleCloudDisk
 from turbinia.evidence import GoogleCloudDiskRawEmbedded
 from turbinia.evidence import RawDisk
@@ -29,7 +29,7 @@ class DockerContainersEnumerationJob(TurbiniaJob):
 
   # Types of evidence that this Job will process.
   evidence_input = [GoogleCloudDisk, GoogleCloudDiskRawEmbedded, RawDisk]
-  evidence_output = [DockerContainerEvidence]
+  evidence_output = [DockerContainer]
 
   def __init__(self):
     super(DockerContainersEnumerationJob, self).__init__(name='DockerContainersEnumerationJob')

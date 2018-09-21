@@ -48,6 +48,8 @@ class FileArtifactExtractionTask(TurbiniaTask):
 
     cmd = [
         'image_export.py',
+        '--artifact_definitions',
+        '/usr/local/google/home/romaing/src/artifacts/data',
         '--logfile',
         image_export_log,
         '-w',

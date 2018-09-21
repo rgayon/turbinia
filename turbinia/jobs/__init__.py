@@ -43,7 +43,8 @@ def get_jobs():
   return [
 #    StatJob(), PlasoJob(), PsortJob(), StringsJob(), GrepJob(),
 #    SSHDExtractionJob(), SSHDAnalysisJob(), TomcatExtractionJob(), TomcatAnalysisJob()
-    DockerContainerEnumerationJob()
+    HTTPAccessLogExtractionJob(),
+    DockerContainersEnumerationJob()
   ]
 
 
